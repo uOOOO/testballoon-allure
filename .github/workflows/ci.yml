@@ -40,6 +40,13 @@ jobs:
           name: test-reports
           path: '**/build/reports/tests/**'
 
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: host-allure-results
+          path: '**/build/allure-results/**'
+
   device-test:
     name: Instrumented test (emulator)
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
