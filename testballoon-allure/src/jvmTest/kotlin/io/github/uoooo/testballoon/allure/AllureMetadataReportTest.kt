@@ -8,6 +8,7 @@ import de.infix.testBalloon.framework.shared.internal.TestBalloonInternalTesting
 import java.nio.file.Files
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -127,6 +128,116 @@ class AllureMetadataReportTest {
         }
         resultsDir.deleteRecursively()
     }
+
+    @Test
+    fun `explicit suite labels replace the path-derived suites trio`() = FrameworkTestUtilities.withTestFramework {
+        val resultsDir = Files.createTempDirectory("allure-results-suites").toFile()
+
+        val suite by testSuite(
+            qualifiedPropertyName = "suitesSuite",
+            testConfig =
+            TestConfig
+                .allure {
+                    parentSuite("Web")
+                    suite("Shop")
+                    subSuite("Checkout")
+                }.executionReport(AllureExecutionReport(resultsDir.absolutePath))
+        ) {
+            testSuite("inner") {
+                test("listed") {
+                    // passing test body
+                }
+            }
+        }
+
+        FrameworkTestUtilities.withTestReport(suite) {
+            val json =
+                resultsDir
+                    .listFiles { f -> f.name.endsWith("-result.json") }
+                    .orEmpty()
+                    .first()
+                    .readText()
+            assertTrue(json.contains("\"name\":\"parentSuite\",\"value\":\"Web\""), "explicit parentSuite")
+            assertTrue(json.contains("\"name\":\"suite\",\"value\":\"Shop\""), "explicit suite")
+            assertTrue(json.contains("\"name\":\"subSuite\",\"value\":\"Checkout\""), "explicit subSuite")
+            assertEquals(1, occurrences(json, "\"name\":\"suite\""), "derived suite label suppressed")
+            assertEquals(1, occurrences(json, "\"name\":\"parentSuite\""), "derived parentSuite label suppressed")
+        }
+        resultsDir.deleteRecursively()
+    }
+
+    @Test
+    fun `a partial explicit suite declaration disables the whole derived trio`() =
+        FrameworkTestUtilities.withTestFramework {
+            val resultsDir = Files.createTempDirectory("allure-results-suites-partial").toFile()
+
+            val suite by testSuite(
+                qualifiedPropertyName = "partialSuitesSuite",
+                testConfig =
+                TestConfig
+                    .allure { suite("Shop") }
+                    .executionReport(AllureExecutionReport(resultsDir.absolutePath))
+            ) {
+                testSuite("inner") {
+                    testSuite("deeper") {
+                        test("classified") {
+                            // passing test body
+                        }
+                    }
+                }
+            }
+
+            FrameworkTestUtilities.withTestReport(suite) {
+                val json =
+                    resultsDir
+                        .listFiles { f -> f.name.endsWith("-result.json") }
+                        .orEmpty()
+                        .first()
+                        .readText()
+                assertTrue(json.contains("\"name\":\"suite\",\"value\":\"Shop\""), "explicit suite")
+                assertEquals(1, occurrences(json, "\"name\":\"suite\""), "single suite label only")
+                assertFalse(json.contains("\"name\":\"parentSuite\""), "derived parentSuite not emitted")
+                assertFalse(json.contains("\"name\":\"subSuite\""), "derived subSuite not emitted")
+            }
+            resultsDir.deleteRecursively()
+        }
+
+    @Test
+    fun `suite labels merge across hierarchy levels like other scalars`() = FrameworkTestUtilities.withTestFramework {
+        val resultsDir = Files.createTempDirectory("allure-results-suites-merge").toFile()
+
+        val suite by testSuite(
+            qualifiedPropertyName = "suitesMergeSuite",
+            testConfig =
+            TestConfig
+                .allure { suite("Shop") }
+                .executionReport(AllureExecutionReport(resultsDir.absolutePath))
+        ) {
+            testSuite(
+                "inner",
+                testConfig = TestConfig.allure { subSuite("Checkout") }
+            ) {
+                test("merged") {
+                    // passing test body
+                }
+            }
+        }
+
+        FrameworkTestUtilities.withTestReport(suite) {
+            val json =
+                resultsDir
+                    .listFiles { f -> f.name.endsWith("-result.json") }
+                    .orEmpty()
+                    .first()
+                    .readText()
+            assertTrue(json.contains("\"name\":\"suite\",\"value\":\"Shop\""), "inherited suite kept")
+            assertTrue(json.contains("\"name\":\"subSuite\",\"value\":\"Checkout\""), "child subSuite added")
+            assertEquals(1, occurrences(json, "\"name\":\"suite\""), "single suite label only")
+        }
+        resultsDir.deleteRecursively()
+    }
+
+    private fun occurrences(text: String, part: String): Int = text.split(part).size - 1
 
     @Test
     fun `issue and tms links resolve urls from system property patterns`() = FrameworkTestUtilities.withTestFramework {

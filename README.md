@@ -47,6 +47,16 @@ val mySuite by testSuite(
 Results are written to `allure.results.directory` (default `allure-results`); generate a report with the
 [Allure CLI](https://allurereport.org/docs/install/): `allure serve <results-directory>`.
 
+The Suites-view labels (`parentSuite`/`suite`/`subSuite`) are derived from the test path by default.
+Declaring any of them explicitly replaces the derived set — like allure-pytest's suite decorators:
+
+```kotlin
+testConfig = TestConfig.allure {
+    suite("Shop")
+    subSuite("Checkout")
+}
+```
+
 ## Robolectric (host) tests
 
 Use the plain `testballoon-allure` module together with TestBalloon's Robolectric integration — with an

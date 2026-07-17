@@ -33,6 +33,9 @@ internal data class AllureMetadata(
     val epic: String? = null,
     val feature: String? = null,
     val stories: List<String> = emptyList(),
+    val parentSuite: String? = null,
+    val suite: String? = null,
+    val subSuite: String? = null,
     val description: String? = null,
     val descriptionHtml: String? = null,
     val severity: AllureSeverity? = null,
@@ -54,6 +57,9 @@ internal data class AllureMetadata(
             epic = epic ?: inherited.epic,
             feature = feature ?: inherited.feature,
             stories = inherited.stories + stories,
+            parentSuite = parentSuite ?: inherited.parentSuite,
+            suite = suite ?: inherited.suite,
+            subSuite = subSuite ?: inherited.subSuite,
             description = description ?: inherited.description,
             descriptionHtml = descriptionHtml ?: inherited.descriptionHtml,
             severity = severity ?: inherited.severity,
@@ -81,6 +87,25 @@ public class AllureMetadataBuilder internal constructor() {
 
     public fun story(vararg values: String) {
         metadata = metadata.copy(stories = metadata.stories + values)
+    }
+
+    /**
+     * Sets the Suites-view `parentSuite` label. Declaring any of [parentSuite]/[suite]/[subSuite]
+     * replaces the automatically derived Suites-view labels entirely (like allure-pytest's suite
+     * decorators override its module-derived defaults).
+     */
+    public fun parentSuite(value: String) {
+        metadata = metadata.copy(parentSuite = value)
+    }
+
+    /** Sets the Suites-view `suite` label. See [parentSuite] for the override semantics. */
+    public fun suite(value: String) {
+        metadata = metadata.copy(suite = value)
+    }
+
+    /** Sets the Suites-view `subSuite` label. See [parentSuite] for the override semantics. */
+    public fun subSuite(value: String) {
+        metadata = metadata.copy(subSuite = value)
     }
 
     public fun description(text: String) {
