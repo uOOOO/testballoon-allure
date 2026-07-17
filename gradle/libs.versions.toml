@@ -1,0 +1,59 @@
+[versions]
+
+# https://developer.android.com/build/releases/gradle-plugin
+agp = "9.3.0"
+
+# https://developer.android.com/build#android_sdk_settings
+android-compileSdk = "36"
+android-minSdk = "26"
+
+# https://developer.android.com/jetpack/androidx/versions/all-channel
+androidx-test = "1.7.0"
+androidx-test-services = "1.6.0"
+
+# https://github.com/allure-framework/allure-java/releases
+allure = "2.35.3"
+
+# https://github.com/junit-team/junit4/releases
+junit4 = "4.13.2"
+
+# https://github.com/JetBrains/kotlin/releases
+# Must match the Kotlin version of the TestBalloon variant below (-K suffix).
+kotlin = "2.4.0"
+
+# https://github.com/jeremymailen/kotlinter-gradle/releases
+kotlinter = "5.6.0"
+
+# https://github.com/infix-de/testBalloon/releases
+testballoon = "1.0.1-K2.4.0"
+
+# https://github.com/vanniktech/gradle-maven-publish-plugin/releases
+vanniktech-maven-publish = "0.37.0"
+
+[libraries]
+
+allure-java-commons = { module = "io.qameta.allure:allure-java-commons", version.ref = "allure" }
+
+androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidx-test" }
+
+# TestStorage client library (device side); its service APK is installed via androidTestUtil by consumers.
+androidx-test-storage = { group = "androidx.test.services", name = "storage", version.ref = "androidx-test-services" }
+
+junit4 = { module = "junit:junit", version.ref = "junit4" }
+
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+
+testballoon-framework-core = { module = "de.infix.testBalloon:testBalloon-framework-core", version.ref = "testballoon" }
+testballoon-integration-robolectric = { module = "de.infix.testBalloon:testBalloon-integration-robolectric", version.ref = "testballoon" }
+
+[plugins]
+
+android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+
+kotlinter = { id = "org.jmailen.kotlinter", version.ref = "kotlinter" }
+
+testballoon = { id = "de.infix.testBalloon", version.ref = "testballoon" }
+
+vanniktech-maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "vanniktech-maven-publish" }
