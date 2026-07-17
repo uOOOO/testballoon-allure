@@ -1,5 +1,8 @@
 # testballoon-allure
 
+[![CI](https://github.com/uOOOO/testballoon-allure/actions/workflows/ci.yml/badge.svg)](https://github.com/uOOOO/testballoon-allure/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 [Allure](https://allurereport.org/) reporting for the [TestBalloon](https://github.com/infix-de/testBalloon)
 test framework — DSL-only, with capability parity to `allure-junit4`.
 
