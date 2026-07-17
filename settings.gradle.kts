@@ -22,3 +22,4 @@ rootProject.name = "testballoon-allure"
 
 include(":testballoon-allure")
 include(":testballoon-allure-android")
+include(":example-android")

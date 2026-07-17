@@ -6,6 +6,7 @@ agp = "9.3.0"
 # https://developer.android.com/build#android_sdk_settings
 android-compileSdk = "36"
 android-minSdk = "26"
+android-targetSdk = "36"
 
 # https://developer.android.com/jetpack/androidx/versions/all-channel
 androidx-test = "1.7.0"
@@ -35,9 +36,12 @@ vanniktech-maven-publish = "0.37.0"
 allure-java-commons = { module = "io.qameta.allure:allure-java-commons", version.ref = "allure" }
 
 androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidx-test" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidx-test" }
 
 # TestStorage client library (device side); its service APK is installed via androidTestUtil by consumers.
 androidx-test-storage = { group = "androidx.test.services", name = "storage", version.ref = "androidx-test-services" }
+# The test services APK itself, installed via androidTestUtil (provides TestStorage on the device).
+androidx-test-services = { group = "androidx.test.services", name = "test-services", version.ref = "androidx-test-services" }
 
 junit4 = { module = "junit:junit", version.ref = "junit4" }
 
@@ -47,6 +51,8 @@ testballoon-framework-core = { module = "de.infix.testBalloon:testBalloon-framew
 testballoon-integration-robolectric = { module = "de.infix.testBalloon:testBalloon-integration-robolectric", version.ref = "testballoon" }
 
 [plugins]
+
+android-application = { id = "com.android.application", version.ref = "agp" }
 
 android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 
