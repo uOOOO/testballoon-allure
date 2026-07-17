@@ -39,8 +39,8 @@ kotlin {
 }
 
 tasks.withType<Test>().configureEach {
-    systemProperty(
-        "allure.results.directory",
-        layout.buildDirectory.dir("allure-results").get().asFile.absolutePath,
-    )
+    val allureResults = layout.buildDirectory.dir("allure-results")
+    // Declared as an output so cached/up-to-date runs still provide the results (e.g. for CI upload).
+    outputs.dir(allureResults)
+    systemProperty("allure.results.directory", allureResults.get().asFile.absolutePath)
 }

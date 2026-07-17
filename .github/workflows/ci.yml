@@ -46,6 +46,7 @@ jobs:
         with:
           name: host-allure-results
           path: '**/build/allure-results/**'
+          if-no-files-found: error
 
   device-test:
     name: Instrumented test (emulator)
@@ -82,3 +83,4 @@ jobs:
         with:
           name: device-allure-results
           path: example-android/build/outputs/connected_android_test_additional_output/**
+          if-no-files-found: error
