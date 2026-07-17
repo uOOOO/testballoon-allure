@@ -38,3 +38,26 @@ val AllureDiscoverableSample by testSuite(
     robolectricTestSuite<MultiDepthSampleContent>("MultiDepth discoverable")
     robolectricTestSuite<FullFeatureSampleContent>("FullFeature discoverable")
 }
+
+/**
+ * Twin of the SdkCheck registration above, differing only in explicit Suites-view labels: in the
+ * report's Suites tab this suite appears under Platform > Sandbox > SDK checks, while the twin
+ * stays under the path-derived grouping — a side-by-side view of the override.
+ */
+val AllureExplicitSuitesSample by testSuite(
+    testConfig =
+    TestConfig
+        .robolectric { sdk = 34 }
+        .allure {
+            epic("Platform")
+            feature("Sandbox")
+            story("SDK version check")
+            severity(AllureSeverity.NORMAL)
+            owner("testBalloon")
+            parentSuite("Platform")
+            suite("Sandbox")
+            subSuite("SDK checks")
+        }
+) {
+    robolectricTestSuite<SdkCheckSampleContent>("SdkCheck discoverable (explicit suites)")
+}
