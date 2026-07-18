@@ -80,14 +80,17 @@ internal data class AllureMetadata(
 public class AllureMetadataBuilder internal constructor() {
     private var metadata = AllureMetadata()
 
+    /** Sets the Behaviors-view top-level group (the epic > feature > story tree). */
     public fun epic(value: String) {
         metadata = metadata.copy(epic = value)
     }
 
+    /** Sets the Behaviors-view second-level group. */
     public fun feature(value: String) {
         metadata = metadata.copy(feature = value)
     }
 
+    /** Adds Behaviors-view third-level entries; a test may belong to several stories. */
     public fun story(vararg values: String) {
         metadata = metadata.copy(stories = metadata.stories + values)
     }
@@ -123,32 +126,41 @@ public class AllureMetadataBuilder internal constructor() {
         metadata = metadata.copy(displayName = value)
     }
 
+    /** Sets the plain-text body shown in the test's detail view. */
     public fun description(text: String) {
         metadata = metadata.copy(description = text)
     }
 
+    /** Sets the HTML body shown in the test's detail view. */
     public fun descriptionHtml(html: String) {
         metadata = metadata.copy(descriptionHtml = html)
     }
 
+    /** Sets the severity shown in the detail view and the severity widget; absent means normal. */
     public fun severity(value: AllureSeverity) {
         metadata = metadata.copy(severity = value)
     }
 
+    /** Sets the owner shown in the test's detail view. */
     public fun owner(value: String) {
         metadata = metadata.copy(owner = value)
     }
 
+    /** Adds tags used by the report's filtering and search. */
     public fun tag(vararg values: String) {
         metadata = metadata.copy(tags = metadata.tags + values)
     }
 
+    /**
+     * Adds a raw label. Grouping views read specific names (the suite trio, epic/feature/story);
+     * any other name is informational and searchable only.
+     */
     public fun label(name: String, value: String) {
         metadata = metadata.copy(labels = metadata.labels + (name to value))
     }
 
     /**
-     * Adds a tracking link. Without [url], the URL is resolved via the
+     * Adds a tracking link, shown in the test's detail view. Without [url], the URL is resolved via the
      * `allure.link.<type>.pattern` system property (`{}` is replaced with [name]).
      */
     public fun link(name: String, url: String? = null, type: String = "custom") {
