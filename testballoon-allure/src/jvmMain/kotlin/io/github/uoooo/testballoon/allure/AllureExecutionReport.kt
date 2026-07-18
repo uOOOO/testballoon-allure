@@ -139,25 +139,20 @@ public class AllureExecutionReport(private val sink: AllureResultsSink) : TestEx
         }
         segments.lastOrNull()?.let { result.labels.add(ResultsUtils.createTestMethodLabel(it)) }
 
-        // Suites view labels mirror allure-junit-platform's getSuiteLabels() for @Nested chains:
-        // a single level maps to suite only; deeper chains shift to parentSuite/suite, with the
-        // remaining levels joined into subSuite by " > ". The leaf appears as the list entry via
-        // the result's name. Explicit values (TestConfig.allure { suite(...) }) replace the derived
-        // set entirely — like allure-pytest, whose suite decorators override its module-derived
-        // defaults. Allure labels are append-only, so replacement must happen here at emission.
-
+        // Suites-view labels: the derived default is a single suite label carrying the top-level
+        // suite — exactly what allure-junit4 emits (suite = class). Nesting is deliberately NOT
+        // unfolded into parentSuite/suite/subSuite: with descriptive (e.g. BDD-style) level names
+        // the trio turns sentences into group names; the nested structure stays available in
+        // fullName and the step chain. Explicit values (TestConfig.allure { suite(...) }) replace
+        // the derived label entirely — like allure-pytest, whose suite decorators override its
+        // module-derived defaults. Allure labels are append-only, so replacement must happen here
+        // at emission.
         if (meta != null && (meta.parentSuite ?: meta.suite ?: meta.subSuite) != null) {
             meta.parentSuite?.let { result.labels.add(ResultsUtils.createParentSuiteLabel(it)) }
             meta.suite?.let { result.labels.add(ResultsUtils.createSuiteLabel(it)) }
             meta.subSuite?.let { result.labels.add(ResultsUtils.createSubSuiteLabel(it)) }
-        } else if (pathLevels.size == 1) {
-            result.labels.add(ResultsUtils.createSuiteLabel(pathLevels[0]))
-        } else if (pathLevels.size > 1) {
-            result.labels.add(ResultsUtils.createParentSuiteLabel(pathLevels[0]))
-            result.labels.add(ResultsUtils.createSuiteLabel(pathLevels[1]))
-            if (pathLevels.size > 2) {
-                result.labels.add(ResultsUtils.createSubSuiteLabel(pathLevels.drop(2).joinToString(" > ")))
-            }
+        } else {
+            pathLevels.firstOrNull()?.let { result.labels.add(ResultsUtils.createSuiteLabel(it)) }
         }
 
         meta?.let { m ->

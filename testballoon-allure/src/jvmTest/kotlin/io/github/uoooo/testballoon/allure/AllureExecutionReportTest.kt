@@ -10,6 +10,7 @@ import java.nio.file.Files
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -163,64 +164,59 @@ class AllureExecutionReportTest {
     }
 
     @Test
-    fun `path levels map to parentSuite suite and subSuite labels root-first`() =
-        FrameworkTestUtilities.withTestFramework {
-            val resultsDir = Files.createTempDirectory("allure-results-suite-labels").toFile()
+    fun `nested levels derive a single junit4-style suite label`() = FrameworkTestUtilities.withTestFramework {
+        val resultsDir = Files.createTempDirectory("allure-results-suite-labels").toFile()
 
-            val suite by testSuite(
-                qualifiedPropertyName = "suiteLabelsSuite",
-                testConfig =
-                TestConfig
-                    .allure(epic = "Shop", feature = "Checkout", "Checkout → Receipt")
-                    .executionReport(AllureExecutionReport(resultsDir.absolutePath))
-            ) {
-                testSuite("level one") {
-                    testSuite("level two") {
-                        testSuite("level three") {
-                            test("leaf test") {
-                                // passing
-                            }
+        val suite by testSuite(
+            qualifiedPropertyName = "suiteLabelsSuite",
+            testConfig =
+            TestConfig
+                .allure(epic = "Shop", feature = "Checkout", "Checkout → Receipt")
+                .executionReport(AllureExecutionReport(resultsDir.absolutePath))
+        ) {
+            testSuite("level one") {
+                testSuite("level two") {
+                    testSuite("level three") {
+                        test("leaf test") {
+                            // passing
                         }
                     }
                 }
             }
-
-            FrameworkTestUtilities.withTestReport(suite) {
-                val json =
-                    resultsDir
-                        .listFiles { f -> f.name.endsWith("-result.json") }
-                        .orEmpty()
-                        .first()
-                        .readText()
-                assertTrue(
-                    json.contains("\"name\":\"parentSuite\",\"value\":\"suiteLabelsSuite\""),
-                    "the top-level suite becomes parentSuite (the JUnit4 'class' node)"
-                )
-                assertTrue(
-                    json.contains("\"name\":\"suite\",\"value\":\"level one\""),
-                    "the first level below the top-level suite becomes suite (space un-escaped)"
-                )
-                assertTrue(
-                    json.contains("\"name\":\"subSuite\",\"value\":\"level two > level three\""),
-                    "remaining levels join into subSuite, excluding the leaf test"
-                )
-                assertTrue(
-                    json.contains("\"name\":\"package\",\"value\":\"suiteLabelsSuite\""),
-                    "the top-level suite name becomes the package label (Packages view)"
-                )
-                assertTrue(
-                    json.contains("\"name\":\"testClass\",\"value\":\"suiteLabelsSuite\""),
-                    "the top-level suite name becomes the testClass label"
-                )
-                assertTrue(
-                    json.contains("\"name\":\"testMethod\",\"value\":\"leaf test\""),
-                    "the leaf name becomes the testMethod label"
-                )
-                assertTrue(json.contains("\"name\":\"host\""), "host label recorded automatically")
-                assertTrue(json.contains("\"name\":\"thread\""), "thread label recorded automatically")
-                resultsDir.deleteRecursively()
-            }
         }
+
+        FrameworkTestUtilities.withTestReport(suite) {
+            val json =
+                resultsDir
+                    .listFiles { f -> f.name.endsWith("-result.json") }
+                    .orEmpty()
+                    .first()
+                    .readText()
+            assertTrue(
+                json.contains("\"name\":\"suite\",\"value\":\"suiteLabelsSuite\""),
+                "the top-level suite becomes the single suite label, like allure-junit4's class"
+            )
+            assertFalse(
+                json.contains("\"name\":\"parentSuite\"") || json.contains("\"name\":\"subSuite\""),
+                "nesting is not unfolded into the trio (structure lives in fullName and steps)"
+            )
+            assertTrue(
+                json.contains("\"name\":\"package\",\"value\":\"suiteLabelsSuite\""),
+                "the top-level suite name becomes the package label (Packages view)"
+            )
+            assertTrue(
+                json.contains("\"name\":\"testClass\",\"value\":\"suiteLabelsSuite\""),
+                "the top-level suite name becomes the testClass label"
+            )
+            assertTrue(
+                json.contains("\"name\":\"testMethod\",\"value\":\"leaf test\""),
+                "the leaf name becomes the testMethod label"
+            )
+            assertTrue(json.contains("\"name\":\"host\""), "host label recorded automatically")
+            assertTrue(json.contains("\"name\":\"thread\""), "thread label recorded automatically")
+            resultsDir.deleteRecursively()
+        }
+    }
 
     @Test
     fun `a test directly under the top-level suite gets a suite label only, like allure-junit5`() =
