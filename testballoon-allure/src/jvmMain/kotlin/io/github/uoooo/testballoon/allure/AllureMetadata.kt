@@ -1,5 +1,6 @@
 package io.github.uoooo.testballoon.allure
 
+import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestElement
 import de.infix.testBalloon.framework.core.parameter
@@ -36,6 +37,7 @@ internal data class AllureMetadata(
     val parentSuite: String? = null,
     val suite: String? = null,
     val subSuite: String? = null,
+    val displayName: String? = null,
     val description: String? = null,
     val descriptionHtml: String? = null,
     val severity: AllureSeverity? = null,
@@ -60,6 +62,7 @@ internal data class AllureMetadata(
             parentSuite = parentSuite ?: inherited.parentSuite,
             suite = suite ?: inherited.suite,
             subSuite = subSuite ?: inherited.subSuite,
+            displayName = displayName ?: inherited.displayName,
             description = description ?: inherited.description,
             descriptionHtml = descriptionHtml ?: inherited.descriptionHtml,
             severity = severity ?: inherited.severity,
@@ -106,6 +109,18 @@ public class AllureMetadataBuilder internal constructor() {
     /** Sets the Suites-view `subSuite` label. See [parentSuite] for the override semantics. */
     public fun subSuite(value: String) {
         metadata = metadata.copy(subSuite = value)
+    }
+
+    /**
+     * Overrides the result's display name (the list entry in every report tab), like
+     * allure-junit4's method-level `@DisplayName`. Structure is untouched: fullName, the step
+     * chain, the `testMethod` label and the history id keep using the declared test name.
+     * Declaring it on a suite fails fast — a suite has no result of its own to rename; to
+     * rename a group in the Suites view (allure-junit4's class-level `@DisplayName` role),
+     * use [suite]/[parentSuite]/[subSuite] instead.
+     */
+    public fun displayName(value: String) {
+        metadata = metadata.copy(displayName = value)
     }
 
     public fun description(text: String) {
@@ -182,7 +197,17 @@ public fun TestConfig.allure(configure: AllureMetadataBuilder.() -> Unit): TestC
     // A sandbox-loaded copy would record metadata under a duplicated key the report cannot see.
     RobolectricSandboxGuard.ensurePortable()
     val configured = AllureMetadataBuilder().apply(configure).build()
-    return parameter(AllureMetadata.Key) { inherited -> configured.mergedInto(inherited) }
+    // The parameter lambda's receiver is the element this config is attached to.
+    return parameter(AllureMetadata.Key) { inherited ->
+        check(configured.displayName == null || this is Test) {
+            "allure { displayName(...) } applies to individual tests only, like allure-junit4's" +
+                " method-level @DisplayName — but it was declared on '$this'." +
+                " A suite has no result of its own to rename. To rename a group in the report's" +
+                " Suites view (junit4's class-level @DisplayName role)," +
+                " use suite()/parentSuite()/subSuite() instead."
+        }
+        configured.mergedInto(inherited)
+    }
 }
 
 /** Convenience overload covering the common epic/feature/story case. */

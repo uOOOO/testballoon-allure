@@ -57,6 +57,9 @@ testConfig = TestConfig.allure {
 }
 ```
 
+`displayName("…")` overrides a test's list entry the same way (the `@DisplayName` equivalent of
+allure-junit4), leaving fullName, the step chain and history tracking untouched.
+
 ## Robolectric (host) tests
 
 Use the plain `testballoon-allure` module together with TestBalloon's Robolectric integration — with an

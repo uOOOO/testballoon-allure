@@ -90,7 +90,11 @@ public class AllureExecutionReport(private val sink: AllureResultsSink) : TestEx
         // allure-junit4's md5 history id format, so a name containing " > " cannot collide with a
         // nested path. Displayed fields keep the readable " > " join.
         val trackingId = ResultsUtils.md5(segments.joinToString("\u001F"))
-        val displayName = segments.last()
+        val meta = element.testElementParameter(AllureMetadata.Key)
+        // The display name (the list entry) may be overridden like allure-junit4's method-level
+        // @DisplayName; structural fields (fullName, steps, testMethod, tracking ids) keep the
+        // path leaf. Suite-level declarations are rejected at config time (TestConfig.allure).
+        val displayName = meta?.displayName ?: segments.last()
 
         val status =
             when {
@@ -124,7 +128,6 @@ public class AllureExecutionReport(private val sink: AllureResultsSink) : TestEx
             }
         )
 
-        val meta = element.testElementParameter(AllureMetadata.Key)
         val pathLevels = segments.dropLast(1)
 
         // Automatic structural labels mirror the JUnit adapters: the package-qualified top-level suite

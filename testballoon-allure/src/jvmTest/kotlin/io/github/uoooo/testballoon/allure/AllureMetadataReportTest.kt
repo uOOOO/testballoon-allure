@@ -9,6 +9,7 @@ import java.nio.file.Files
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -234,6 +235,71 @@ class AllureMetadataReportTest {
             assertTrue(json.contains("\"name\":\"subSuite\",\"value\":\"Checkout\""), "child subSuite added")
             assertEquals(1, occurrences(json, "\"name\":\"suite\""), "single suite label only")
         }
+        resultsDir.deleteRecursively()
+    }
+
+    @Test
+    fun `displayName overrides the list entry but not the structural fields`() =
+        FrameworkTestUtilities.withTestFramework {
+            val resultsDir = Files.createTempDirectory("allure-results-displayname").toFile()
+
+            val suite by testSuite(
+                qualifiedPropertyName = "displayNameSuite",
+                testConfig = TestConfig.executionReport(AllureExecutionReport(resultsDir.absolutePath))
+            ) {
+                test(
+                    "pays with a saved card",
+                    testConfig = TestConfig.allure { displayName("Checkout — pays with a saved card") }
+                ) {
+                    // passing test body
+                }
+            }
+
+            FrameworkTestUtilities.withTestReport(suite) {
+                val json =
+                    resultsDir
+                        .listFiles { f -> f.name.endsWith("-result.json") }
+                        .orEmpty()
+                        .first()
+                        .readText()
+                assertTrue(
+                    json.contains("\"name\":\"Checkout — pays with a saved card\""),
+                    "display name overrides the result name"
+                )
+                assertTrue(
+                    json.contains("\"fullName\":\"displayNameSuite > pays with a saved card\""),
+                    "fullName keeps the declared path leaf"
+                )
+                assertTrue(
+                    json.contains("\"name\":\"testMethod\",\"value\":\"pays with a saved card\""),
+                    "testMethod label keeps the declared name"
+                )
+            }
+            resultsDir.deleteRecursively()
+        }
+
+    @Test
+    fun `a suite-level displayName fails fast with guidance`() = FrameworkTestUtilities.withTestFramework {
+        val resultsDir = Files.createTempDirectory("allure-results-displayname-suite").toFile()
+
+        // The framework wraps configuration failures (TestConfigurationError), so assert on the chain.
+        val failure = assertFailsWith<Throwable> {
+            val suite by testSuite(
+                qualifiedPropertyName = "suiteDisplayNameSuite",
+                testConfig =
+                TestConfig
+                    .allure { displayName("must-not-be-on-a-suite") }
+                    .executionReport(AllureExecutionReport(resultsDir.absolutePath))
+            ) {
+                test("never runs") {
+                    // never reached — the suite configuration is rejected
+                }
+            }
+
+            FrameworkTestUtilities.withTestReport(suite) {}
+        }
+        val chainMessages = generateSequence(failure) { it.cause }.mapNotNull { it.message }.joinToString("\n")
+        assertTrue(chainMessages.contains("suite()"), "message guides to the suite label functions")
         resultsDir.deleteRecursively()
     }
 
