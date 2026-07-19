@@ -6,6 +6,7 @@ import de.infix.testBalloon.framework.core.executionReport
 import de.infix.testBalloon.framework.core.internal.FrameworkTestUtilities
 import de.infix.testBalloon.framework.core.testSuite
 import de.infix.testBalloon.framework.shared.internal.TestBalloonInternalTestingApi
+import io.qameta.allure.util.ResultsUtils
 import java.nio.file.Files
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -162,6 +163,52 @@ class AllureExecutionReportTest {
             resultsDir.deleteRecursively()
         }
     }
+
+    @Test
+    fun `a hidden wrapper suite is omitted from fullName steps and tracking ids`() =
+        FrameworkTestUtilities.withTestFramework {
+            val resultsDir = Files.createTempDirectory("allure-results-hidden").toFile()
+
+            val suite by testSuite(
+                qualifiedPropertyName = "hiddenPathSuite",
+                testConfig = TestConfig.executionReport(AllureExecutionReport(resultsDir.absolutePath))
+            ) {
+                testSuite("wrapper", testConfig = TestConfig.allure { hideInReportPath() }) {
+                    testSuite("visible group") {
+                        test("leaf test") {
+                            // passing
+                        }
+                    }
+                }
+            }
+
+            FrameworkTestUtilities.withTestReport(suite) {
+                val json =
+                    resultsDir
+                        .listFiles { f -> f.name.endsWith("-result.json") }
+                        .orEmpty()
+                        .first()
+                        .readText()
+                assertTrue(
+                    json.contains("\"fullName\":\"hiddenPathSuite > visible group > leaf test\""),
+                    "fullName skips the hidden level"
+                )
+                assertFalse(json.contains("wrapper"), "the hidden suite's name appears nowhere in the result")
+                assertTrue(
+                    json.contains(
+                        "\"name\":\"visible group\",\"status\":\"passed\",\"steps\":[{\"name\":\"leaf test\""
+                    ),
+                    "the step chain starts below the hidden level; children stay visible (hiding is not inherited)"
+                )
+                val visibleTrackingId =
+                    ResultsUtils.md5(listOf("hiddenPathSuite", "visible group", "leaf test").joinToString("\u001F"))
+                assertTrue(
+                    json.contains("\"historyId\":\"$visibleTrackingId\""),
+                    "tracking ids hash the visible chain only"
+                )
+                resultsDir.deleteRecursively()
+            }
+        }
 
     @Test
     fun `nested levels derive a single junit4-style suite label`() = FrameworkTestUtilities.withTestFramework {

@@ -62,6 +62,11 @@ testConfig = TestConfig.allure {
 `displayName("…")` overrides a test's list entry the same way (the `@DisplayName` equivalent of
 allure-junit4), leaving fullName, the step chain and history tracking untouched.
 
+`hideInReportPath()` on a nested suite removes that structural level from fullName, the step chain
+and history tracking — for wrapper suites that are implementation detail, e.g. a
+`robolectricTestSuite` hosting externally defined content. allure-junit4 equally keeps wrapper
+suites (`@RunWith(Suite.class)`) out of its reports.
+
 ## Robolectric (host) tests
 
 Use the plain `testballoon-allure` module together with TestBalloon's Robolectric integration — with an

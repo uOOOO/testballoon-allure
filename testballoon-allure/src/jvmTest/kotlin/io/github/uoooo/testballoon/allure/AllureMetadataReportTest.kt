@@ -303,6 +303,53 @@ class AllureMetadataReportTest {
         resultsDir.deleteRecursively()
     }
 
+    @Test
+    fun `hideInReportPath on a test fails fast with guidance`() = FrameworkTestUtilities.withTestFramework {
+        val resultsDir = Files.createTempDirectory("allure-results-hidden-test").toFile()
+
+        // The framework wraps configuration failures (TestConfigurationError), so assert on the chain.
+        val failure = assertFailsWith<Throwable> {
+            val suite by testSuite(
+                qualifiedPropertyName = "hiddenTestSuite",
+                testConfig = TestConfig.executionReport(AllureExecutionReport(resultsDir.absolutePath))
+            ) {
+                test("never runs", testConfig = TestConfig.allure { hideInReportPath() }) {
+                    // never reached — the test configuration is rejected
+                }
+            }
+
+            FrameworkTestUtilities.withTestReport(suite) {}
+        }
+        val chainMessages = generateSequence(failure) { it.cause }.mapNotNull { it.message }.joinToString("\n")
+        assertTrue(chainMessages.contains("path leaf"), "message states that a test cannot be hidden")
+        resultsDir.deleteRecursively()
+    }
+
+    @Test
+    fun `hideInReportPath on the top-level suite fails fast with guidance`() =
+        FrameworkTestUtilities.withTestFramework {
+            val resultsDir = Files.createTempDirectory("allure-results-hidden-top").toFile()
+
+            val failure = assertFailsWith<Throwable> {
+                val suite by testSuite(
+                    qualifiedPropertyName = "hiddenTopLevelSuite",
+                    testConfig =
+                    TestConfig
+                        .allure { hideInReportPath() }
+                        .executionReport(AllureExecutionReport(resultsDir.absolutePath))
+                ) {
+                    test("never runs") {
+                        // never reached — the suite configuration is rejected
+                    }
+                }
+
+                FrameworkTestUtilities.withTestReport(suite) {}
+            }
+            val chainMessages = generateSequence(failure) { it.cause }.mapNotNull { it.message }.joinToString("\n")
+            assertTrue(chainMessages.contains("class-like roles"), "message states the top-level rule")
+            resultsDir.deleteRecursively()
+        }
+
     private fun occurrences(text: String, part: String): Int = text.split(part).size - 1
 
     @Test

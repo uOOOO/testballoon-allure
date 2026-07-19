@@ -4,6 +4,8 @@ import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestElement
 import de.infix.testBalloon.framework.core.parameter
+import de.infix.testBalloon.framework.shared.internal.Constants
+import de.infix.testBalloon.framework.shared.internal.TestBalloonInternalApi
 
 /** Allure severity levels, mirroring Allure's severity label values. */
 public enum class AllureSeverity {
@@ -76,9 +78,23 @@ internal data class AllureMetadata(
     }
 }
 
+/**
+ * The resolved set of report-path-hidden suites, keyed by their raw internal paths. Each declaring
+ * suite appends its own path to the inherited set, so a test's resolved parameter lists exactly its
+ * hidden ancestors; [AllureExecutionReport] maps them to path depths and skips those segments.
+ */
+internal class AllureHiddenPathNodes(internal val rawPaths: Set<String>) : TestElement.KeyedParameter(Key) {
+    companion object {
+        internal val Key: Key<AllureHiddenPathNodes> = object : Key<AllureHiddenPathNodes> {}
+    }
+}
+
 /** Builder for [AllureMetadata], used by [TestConfig.allure]. All members are optional. */
 public class AllureMetadataBuilder internal constructor() {
     private var metadata = AllureMetadata()
+
+    internal var hidesInReportPath: Boolean = false
+        private set
 
     /** Sets the Behaviors-view top-level group (the epic > feature > story tree). */
     public fun epic(value: String) {
@@ -124,6 +140,22 @@ public class AllureMetadataBuilder internal constructor() {
      */
     public fun displayName(value: String) {
         metadata = metadata.copy(displayName = value)
+    }
+
+    /**
+     * Omits this suite from the reported path: fullName, the step chain and the history/tracking
+     * ids skip its level, as if its children were declared directly in its parent. Registration,
+     * execution and metadata inheritance are unchanged, and hiding applies to this suite only —
+     * never to its children.
+     *
+     * Use it on structural wrapper suites that are implementation detail, e.g. a sandbox wrapper
+     * hosting externally defined content — allure-junit4 equally keeps wrapper suites
+     * (`@RunWith(Suite.class)`) out of its reports. Declaring it on a test or at the top level
+     * fails fast: a test is the path leaf, and the top-level suite carries the report's
+     * class-like roles (package, testClass and the derived suite label).
+     */
+    public fun hideInReportPath() {
+        hidesInReportPath = true
     }
 
     /** Sets the plain-text body shown in the test's detail view. */
@@ -208,19 +240,52 @@ public class AllureMetadataBuilder internal constructor() {
 public fun TestConfig.allure(configure: AllureMetadataBuilder.() -> Unit): TestConfig {
     // A sandbox-loaded copy would record metadata under a duplicated key the report cannot see.
     RobolectricSandboxGuard.ensurePortable()
-    val configured = AllureMetadataBuilder().apply(configure).build()
-    // The parameter lambda's receiver is the element this config is attached to.
-    return parameter(AllureMetadata.Key) { inherited ->
-        check(configured.displayName == null || this is Test) {
-            "allure { displayName(...) } applies to individual tests only, like allure-junit4's" +
-                " method-level @DisplayName — but it was declared on '$this'." +
-                " A suite has no result of its own to rename. To rename a group in the report's" +
-                " Suites view (junit4's class-level @DisplayName role)," +
-                " use suite()/parentSuite()/subSuite() instead."
-        }
+    val builder = AllureMetadataBuilder().apply(configure)
+    val configured = builder.build()
+    // The parameter lambda's receiver is the element this config is attached to. The declaration
+    // parameter is attached first, so its site check runs before the hidden-path accumulation.
+    val config = parameter(AllureMetadata.Key) { inherited ->
+        checkDeclarationSite(configured, builder.hidesInReportPath)
         configured.mergedInto(inherited)
     }
+    if (!builder.hidesInReportPath) return config
+    return config.parameter(AllureHiddenPathNodes.Key) { inherited ->
+        AllureHiddenPathNodes((inherited?.rawPaths ?: emptySet()) + testElementPath.toString())
+    }
 }
+
+/**
+ * The declaration-site rules in one place, mirroring allure-junit4's role model: a test is the
+ * method role (only it has a result of its own to rename), the top-level suite is the class role
+ * (it feeds package/testClass and the derived suite label), and nested suites are structure
+ * (only they can be hidden).
+ */
+private fun TestElement.checkDeclarationSite(configured: AllureMetadata, hidesInReportPath: Boolean) {
+    check(configured.displayName == null || this is Test) {
+        "allure { displayName(...) } applies to individual tests only, like allure-junit4's" +
+            " method-level @DisplayName — but it was declared on '$this'." +
+            " A suite has no result of its own to rename. To rename a group in the report's" +
+            " Suites view (junit4's class-level @DisplayName role)," +
+            " use suite()/parentSuite()/subSuite() instead."
+    }
+    if (!hidesInReportPath) return
+    check(this !is Test) {
+        "allure { hideInReportPath() } applies to nested suites only — but it was declared on" +
+            " test '$this'. A test is the path leaf and cannot be hidden; to change its list" +
+            " entry, use displayName() instead."
+    }
+    check(isNestedElement()) {
+        "allure { hideInReportPath() } applies to nested suites only — but it was declared on" +
+            " '$this'. The top level carries the report's class-like roles (package, testClass" +
+            " and the derived suite label) and cannot be hidden."
+    }
+}
+
+// The framework offers no public depth accessor, so this counts on the path's internal ID form
+// (same reliance as AllureExecutionReport.pathSegments): only nested elements contain a separator.
+@OptIn(TestBalloonInternalApi::class)
+private fun TestElement.isNestedElement(): Boolean =
+    testElementPath.toString().contains(Constants.INTERNAL_PATH_ELEMENT_SEPARATOR)
 
 /** Convenience overload covering the common epic/feature/story case. */
 public fun TestConfig.allure(epic: String, feature: String, vararg stories: String): TestConfig = allure {

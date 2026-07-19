@@ -84,7 +84,17 @@ public class AllureExecutionReport(private val sink: AllureResultsSink) : TestEx
         // and the step chain all derive from it. rawPath (the internal form) remains only the
         // runtime buffer key.
         val rawPath = element.testElementPath.toString()
-        val segments = pathSegments(rawPath)
+        // Suites declared hidden (hideInReportPath) drop out of the chain right here, so every
+        // derived field skips them — like allure-junit4, where wrapper suites leave no trace.
+        // Hidden entries are guaranteed ancestors of this test (parameters inherit down the tree
+        // only), so depth indexing is sufficient.
+        val hiddenDepths =
+            element
+                .testElementParameter(AllureHiddenPathNodes.Key)
+                ?.rawPaths
+                .orEmpty()
+                .map { pathSegments(it).size - 1 }
+        val segments = pathSegments(rawPath).filterIndexed { index, _ -> index !in hiddenDepths }
         val pathId = segments.joinToString(" > ")
         // Tracking keys (never displayed) hash a control-character join of the segments, matching
         // allure-junit4's md5 history id format, so a name containing " > " cannot collide with a
