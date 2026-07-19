@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlinter)
+    alias(libs.plugins.vanniktech.maven.publish)
 }
 
 description = "Allure reporting for the TestBalloon test framework"

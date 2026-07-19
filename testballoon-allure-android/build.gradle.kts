@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.testballoon)
     alias(libs.plugins.kotlinter)
+    alias(libs.plugins.vanniktech.maven.publish)
 }
 
 description = "Allure reporting for the TestBalloon test framework in instrumented (device) tests"
