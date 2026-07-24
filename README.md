@@ -1,6 +1,7 @@
 # testballoon-allure
 
 [![CI](https://github.com/uOOOO/testballoon-allure/actions/workflows/ci.yml/badge.svg)](https://github.com/uOOOO/testballoon-allure/actions/workflows/ci.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.uoooo/testballoon-allure)](https://central.sonatype.com/artifact/io.github.uoooo/testballoon-allure)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 [Allure](https://allurereport.org/) reporting for the [TestBalloon](https://github.com/infix-de/testBalloon)
@@ -131,10 +132,6 @@ class MyDeviceTestSession : AllureAndroidTestSession()
 
 After `connectedAndroidTest`, results appear under
 `build/outputs/connected_android_test_additional_output/<variant>/connected/<device>/allure-results`.
-
-## Status
-
-Work in progress — not published yet.
 
 ## License
 
