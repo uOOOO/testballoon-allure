@@ -44,6 +44,16 @@ val mySuite by testSuite(
 }
 ```
 
+### Choosing a version
+
+Use the testballoon-allure version whose `-K` suffix matches your
+TestBalloon variant: for TestBalloon `1.0.1-K<kotlin>`, use
+testballoon-allure `0.1.0-K<kotlin>`.
+
+Supported Kotlin versions: 2.2.0, 2.2.21, 2.3.0, 2.3.20, 2.4.0 (Kotlin
+2.2.0 is the support floor) — see [RELEASING.md](RELEASING.md) for how
+the list evolves.
+
 Results are written to `allure.results.directory` (default `allure-results`); generate a report with the
 [Allure CLI](https://allurereport.org/docs/install/): `allure serve <results-directory>`.
 
