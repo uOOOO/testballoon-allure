@@ -22,6 +22,12 @@ the catalog is sufficient.
 1. Make sure CI is green on `main`. Optionally sweep the variants
    locally: for each matrix entry, run
    `./gradlew -PkotlinVariant=<v> :testballoon-allure:jvmTest :testballoon-allure-android:testAndroidHostTest`
+   Neither CI nor this sweep covers the instrumented (device) path —
+   the TestStorage sink and `AllureAndroidTestSession`. When that code
+   changed since the last release, verify it manually: run
+   `./gradlew :example-android:connectedAndroidTest` against an
+   emulator and check the retrieved `allure-results` under
+   `example-android/build/outputs/`.
 2. Tag the base version (no `-K` suffix) and push the tag:
    `git tag v<version> && git push origin v<version>`
 3. Run the Release workflow from the tag (Actions UI, or
