@@ -521,4 +521,41 @@ class AllureExecutionReportTest {
             dirA.deleteRecursively()
             dirB.deleteRecursively()
         }
+
+    @Test
+    fun `stale buffered records from an earlier execution are discarded when a test starts`() =
+        FrameworkTestUtilities.withTestFramework {
+            val resultsDir = Files.createTempDirectory("allure-results-stale").toFile()
+
+            // "first" plants a leftover record under "second"'s path before "second" starts,
+            // simulating an earlier execution of "second" whose Finished event was never processed.
+            // Sequential invocation (the session default) guarantees the order.
+            val suite by testSuite(
+                qualifiedPropertyName = "staleSuite",
+                testConfig = TestConfig.executionReport(AllureExecutionReport(resultsDir.absolutePath))
+            ) {
+                test("first") {
+                    AllureRuntimeBuffer.addStep(
+                        testElementPath.toString().replace("first", "second"),
+                        null,
+                        PendingStep("stale step", 0)
+                    )
+                }
+                test("second") {
+                    allureStep("fresh step") {}
+                }
+            }
+
+            FrameworkTestUtilities.withTestReport(suite) {
+                val second =
+                    resultsDir
+                        .listFiles { f -> f.name.endsWith("-result.json") }
+                        .orEmpty()
+                        .map { it.readText() }
+                        .single { it.contains("\"fullName\":\"staleSuite > second\"") }
+                assertTrue(second.contains("\"fresh step\""), "the current execution's own step is kept")
+                assertFalse(second.contains("\"stale step\""), "the leftover record must not merge into the result")
+            }
+            resultsDir.deleteRecursively()
+        }
 }

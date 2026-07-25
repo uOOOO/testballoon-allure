@@ -59,6 +59,10 @@ public class AllureExecutionReport(private val sink: AllureResultsSink) : TestEx
     @OptIn(ExperimentalTime::class)
     override suspend fun add(event: TestElement.Event) {
         if (event is TestElement.Event.Starting) {
+            // Recording only happens after Starting, so anything buffered under this path now is a
+            // leftover of an earlier execution whose Finished event was never processed. Discard it,
+            // or it would merge into this execution's result.
+            AllureRuntimeBuffer.drain(event.element.testElementPath.toString())
             val alreadyClaimed =
                 synchronized(claimedEventsLock) {
                     claimedStartingEvents.put(event, Unit) != null

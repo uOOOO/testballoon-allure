@@ -36,11 +36,12 @@ internal class TestRuntimeRecord {
  * framework's structured concurrency guarantees this for supported usage).
  *
  * The path key presumes at most one execution per path and session, which the framework currently
- * guarantees (registration de-duplicates names, re-execution does not exist). Should the framework
- * ever re-execute elements (e.g. a retry feature), discard a path's stale record when its Starting
- * event arrives, or a crashed attempt's records would merge into the next attempt's result. A
- * repeat/retry wrapper built on `TestConfig.aroundEachTest` stays within one execution: its
- * iterations accumulate into the test's single result.
+ * guarantees (registration de-duplicates names, re-execution does not exist). As a safeguard,
+ * [AllureExecutionReport] discards a path's stale record when its Starting event arrives, so
+ * leftovers of an execution whose Finished event was never processed cannot merge into a later
+ * execution's result — including a future framework retry feature's next attempt. A repeat/retry
+ * wrapper built on `TestConfig.aroundEachTest` stays within one execution: its iterations
+ * accumulate into the test's single result.
  */
 internal object AllureRuntimeBuffer {
     private val lock = Any()
