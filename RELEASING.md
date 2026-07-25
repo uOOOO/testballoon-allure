@@ -13,9 +13,9 @@ Everything releases from `main`. `-PkotlinVariant=<kotlin-version>`
 repins the catalog's `kotlin` and `testballoon` entries (see
 `settings.gradle.kts`); without it, builds use the versions in
 `gradle/libs.versions.toml`. The supported variant list lives in the
-`release.yml` matrix; the README table mirrors it. When bumping the
-TestBalloon version in the catalog, also bump `testBalloonBaseVersion`
-in `settings.gradle.kts`.
+`release.yml` matrix; the README table mirrors it. The variant's
+version is derived from the catalog's `testballoon` pin, so bumping
+the catalog is sufficient.
 
 ## Cutting a release
 

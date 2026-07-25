@@ -22,11 +22,15 @@ dependencyResolutionManagement {
     // publish every supported variant. See RELEASING.md.
     versionCatalogs {
         create("libs") {
-            // Must track the TestBalloon version in gradle/libs.versions.toml.
-            val testBalloonBaseVersion = "1.0.1"
             providers.gradleProperty("kotlinVariant").orNull?.let { kotlinVersion ->
+                // Base version taken from the catalog's testballoon pin, minus its -K suffix.
+                val testBalloonPin = Regex("""^testballoon = "([^"]+)"""", RegexOption.MULTILINE)
+                    .find(settingsDir.resolve("gradle/libs.versions.toml").readText())
+                    ?.groupValues
+                    ?.get(1)
+                    ?: error("testballoon version not found in gradle/libs.versions.toml")
                 version("kotlin", kotlinVersion)
-                version("testballoon", "$testBalloonBaseVersion-K$kotlinVersion")
+                version("testballoon", "${testBalloonPin.substringBeforeLast("-K")}-K$kotlinVersion")
             }
         }
     }
