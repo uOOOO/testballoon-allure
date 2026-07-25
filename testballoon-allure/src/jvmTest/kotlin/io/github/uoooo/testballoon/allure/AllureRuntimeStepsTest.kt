@@ -195,4 +195,25 @@ class AllureRuntimeStepsTest {
         }
         resultsDir.deleteRecursively()
     }
+
+    @Test
+    fun `an attachment fileExtension containing a path separator fails the test with guidance`() =
+        FrameworkTestUtilities.withTestFramework {
+            // A separator would end up in the attachment's file name, escaping the results
+            // directory or failing the write with an unrelated error far from the caller.
+            val suite by testSuite(qualifiedPropertyName = "badExtensionSuite") {
+                test("bad extension") {
+                    allureAttachment("data", "content", fileExtension = "../escape")
+                }
+            }
+
+            FrameworkTestUtilities.withTestReport(suite) {
+                val failure = finishedEvents().firstNotNullOfOrNull { it.throwable }
+                assertNotNull(failure, "the recording call must fail the test")
+                assertTrue(
+                    failure is IllegalArgumentException && failure.message.orEmpty().contains("path separator"),
+                    "failure names the path separator restriction, was: $failure"
+                )
+            }
+        }
 }

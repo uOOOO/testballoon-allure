@@ -6,7 +6,20 @@ import kotlinx.coroutines.withContext
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 
-internal class PendingAttachment(val name: String, val type: String, val content: ByteArray, val fileExtension: String)
+internal class PendingAttachment(
+    val name: String,
+    val type: String,
+    val content: ByteArray,
+    val fileExtension: String
+) {
+    init {
+        // The extension becomes part of the attachment's file name; a separator would escape the
+        // results directory or fail the write far from the caller. Fail here, attributable to the test.
+        require('/' !in fileExtension && '\\' !in fileExtension) {
+            "fileExtension must be a plain file extension without path separators, was: '$fileExtension'"
+        }
+    }
+}
 
 internal class PendingParameter(val name: String, val value: String)
 
