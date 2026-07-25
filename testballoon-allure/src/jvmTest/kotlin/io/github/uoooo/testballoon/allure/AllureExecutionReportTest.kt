@@ -523,6 +523,42 @@ class AllureExecutionReportTest {
         }
 
     @Test
+    fun `names with slashes and dots round-trip through the internal path escaping`() =
+        FrameworkTestUtilities.withTestFramework {
+            val resultsDir = Files.createTempDirectory("allure-results-escaping").toFile()
+
+            // The framework escapes '/' (and spaces) in its internal path form; pathSegments undoes
+            // that with a hardcoded '⧸' because the framework keeps the mapping private. This pins
+            // the round-trip, so a framework-side escaping change fails here at the next variant
+            // bump instead of silently corrupting displayed names and history ids.
+            val suite by testSuite(
+                qualifiedPropertyName = "escapingSuite",
+                testConfig = TestConfig.executionReport(AllureExecutionReport(resultsDir.absolutePath))
+            ) {
+                testSuite("GET /users v1.5") {
+                    test("returns a/b for step 2.5") {
+                        // passing
+                    }
+                }
+            }
+
+            FrameworkTestUtilities.withTestReport(suite) {
+                val json =
+                    resultsDir
+                        .listFiles { f -> f.name.endsWith("-result.json") }
+                        .orEmpty()
+                        .first()
+                        .readText()
+                assertTrue(
+                    json.contains("\"fullName\":\"escapingSuite > GET /users v1.5 > returns a/b for step 2.5\""),
+                    "special characters are restored verbatim in fullName"
+                )
+                assertFalse(json.contains('⧸') || json.contains('\u00a0'), "no internal escape characters leak")
+            }
+            resultsDir.deleteRecursively()
+        }
+
+    @Test
     fun `stale buffered records from an earlier execution are discarded when a test starts`() =
         FrameworkTestUtilities.withTestFramework {
             val resultsDir = Files.createTempDirectory("allure-results-stale").toFile()
