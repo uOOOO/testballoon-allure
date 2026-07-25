@@ -34,6 +34,13 @@ internal class TestRuntimeRecord {
  * stay safe. The tree returned by [drain] is still reachable through captured [PendingStep]
  * references, so runtime APIs must not be invoked from coroutines that outlive their test (the
  * framework's structured concurrency guarantees this for supported usage).
+ *
+ * The path key presumes at most one execution per path and session, which the framework currently
+ * guarantees (registration de-duplicates names, re-execution does not exist). Should the framework
+ * ever re-execute elements (e.g. a retry feature), discard a path's stale record when its Starting
+ * event arrives, or a crashed attempt's records would merge into the next attempt's result. A
+ * repeat/retry wrapper built on `TestConfig.aroundEachTest` stays within one execution: its
+ * iterations accumulate into the test's single result.
  */
 internal object AllureRuntimeBuffer {
     private val lock = Any()
@@ -78,6 +85,9 @@ internal class AllureStepContext(val step: PendingStep) : AbstractCoroutineConte
  * inside another [allureStep]. On failure, the step (and each enclosing step) is marked failed/broken
  * and the exception propagates. Recorded data is consumed by an [AllureExecutionReport]; without one
  * configured, it stays buffered (unused) until the test process exits.
+ *
+ * If a repeat/retry wrapper (`TestConfig.aroundEachTest`) re-runs the test body, every run's steps
+ * accumulate into the test's single result.
  */
 public suspend fun <T> Test.ExecutionScope.allureStep(name: String, body: suspend () -> T): T {
     RobolectricSandboxGuard.ensurePortable()
